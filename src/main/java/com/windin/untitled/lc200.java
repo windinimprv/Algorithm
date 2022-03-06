@@ -28,12 +28,24 @@ public class lc200 {
         utils.println(solution.reverse(-123456));
         utils.println(solution.reverse(Integer.MAX_VALUE));
         utils.println(solution.myAtoi("     -+111124124124124abc123"));
+        utils.assumeTure(solution.isMatchDp("aacd", "a*c."));
+        utils.assumeTure(49 == solution.maxArea(new int[] { 1, 8, 6, 2, 5, 4, 8, 3, 7 }));
+        utils.assumeTure("IX".equals(solution.intToRoman(9)));
+        utils.assumeTure("LVIII".equals(solution.intToRoman(58)));
+        utils.assumeTure("MCMXCIV".equals(solution.intToRoman(1994)));
         utils.assumeTure(solution.isPalindrome(3));
         utils.assumeTure(solution.isMatch("aacd", "a*c."));
         solution.findSubstring("barfoothefoobarman", new String[] { "foo", "bar" });
         solution.findSubstring("wordgoodgoodgoodbestword", new String[] { "word", "good", "best", "good" });
         solution.nextPermutation(new int[] { 1, 2, 3 });
         solution.longestValidParentheses("((()))())");
+        solution.searchRange(new int[] { 5, 7, 7, 8, 8, 10 }, 8);
+        solution.solveSudoku(new char[][] { { '5', '3', '.', '.', '7', '.', '.', '.', '.' },
+                { '6', '.', '.', '1', '9', '5', '.', '.', '.' }, { '.', '9', '8', '.', '.', '.', '.', '6', '.' },
+                { '8', '.', '.', '.', '6', '.', '.', '.', '3' }, { '4', '.', '.', '8', '.', '3', '.', '.', '1' },
+                { '7', '.', '.', '.', '2', '.', '.', '.', '6' }, { '.', '6', '.', '.', '.', '.', '2', '8', '.' },
+                { '.', '.', '.', '4', '1', '9', '.', '.', '5' }, { '.', '.', '.', '.', '8', '.', '.', '7', '9' } });
+                solution.countAndSay(4);
     }
 
     static class Solution {
@@ -363,6 +375,21 @@ public class lc200 {
          * 
          * dp
          * dp[i][j] = dp[i - 1][j - 1] && (s[i] == p[j] || p[j] == '.')
+         * dp[i][j] = dp[i - 1][j - 1] && (s[i] == p[j] || p[j] == '.') || ((dp[i][j -
+         * 1] || dp[i - 1][j]) && p[j] == '*')
+         * // 后面的 p[j] == '*'时的判断不会写，用下面每一项列出来来找到思路
+         * a b c d d d e
+         * a t f f f f f
+         * . f t f f f f
+         * c f f t f f f
+         * * f f t f f f
+         * d f f f t f f
+         * * f f f t t t
+         * e f
+         * 
+         * 
+         * 回溯法
+         * todo 无法一次过
          */
         public boolean isMatch(String s, String p) {
             if (s == null || s.length() == 0)
@@ -380,13 +407,34 @@ public class lc200 {
 
             if (pInx < p.length() - 1 && p.charAt(pInx + 1) == '*') {
                 if (p.charAt(pInx) == '.' || s.charAt(sInx) == p.charAt(pInx)) {
-                    return isMatchCore(s, sInx, p, pInx + 2) || isMatchCore(s, sInx + 1, p, pInx)
+                    return isMatchCore(s, sInx, p, pInx + 2)
+                            || isMatchCore(s, sInx + 1, p, pInx)
                             || isMatchCore(s, sInx + 1, p, pInx + 2);
                 }
             } else if (p.charAt(pInx) == '.' || s.charAt(sInx) == p.charAt(pInx)) {
                 return isMatchCore(s, sInx + 1, p, pInx + 1);
             }
             return false;
+        }
+
+        /*
+         * 12. 整数转罗马数字
+         */
+        public String intToRoman(int num) {
+            String[] arr1 = new String[] { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX" };
+            String[] arr2 = new String[] { "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC" };
+            String[] arr3 = new String[] { "", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM" };
+            String[] arr4 = new String[] { "", "M", "MM", "MMM" };
+            String[][] arrs = new String[][] { arr1, arr2, arr3, arr4 };
+            int i = 0;
+            StringBuilder stringBuilder = new StringBuilder();
+            while (num != 0) {
+                stringBuilder.insert(0, arrs[i][num % 10]);
+                num /= 10;
+                i++;
+            }
+            String res = stringBuilder.toString();
+            return res;
         }
 
         /**
@@ -992,12 +1040,284 @@ public class lc200 {
             return max;
         }
 
+        public boolean isMatchDp(String s, String p) {
+            if (s == null || p == null)
+                return false;
+            if (s.length() == 0 || p.length() == 0)
+                return false;
+            boolean dp[][] = new boolean[s.length()][p.length()];
+            for (int i = 0; i < dp.length; i++) {
+                for (int j = 0; j < dp[0].length; j++) {
+                    if (j == 0) { // 边界的填充比较容易搞错
+                        dp[i][j] = i == 0 && (s.charAt(i) == p.charAt(j) || p.charAt(j) == '.');
+                    } else if (i == 0) {
+                        dp[i][j] = p.charAt(j) == '*' && dp[i][j - 1];
+                    } else {
+                        dp[i][j] = dp[i - 1][j - 1] && (s.charAt(i) == p.charAt(j) || p.charAt(j) == '.')
+                                || ((dp[i - 1][j] || dp[i][j - 1]) && p.charAt(j) == '*');
+                    }
+                }
+            }
+            return dp[s.length() - 1][p.length() - 1];
+        }
+
+        /**
+         * 11. 盛最多水的容器
+         * 使用逼近的方法
+         */
+        public int maxArea(int[] height) {
+            if (height == null || height.length <= 1)
+                return 0;
+            int l = 0, r = height.length - 1;
+            int max = 0;
+            while (l < r) {
+                int minHeight = 0;
+                if (height[l] < height[r]) {
+                    minHeight = height[l];
+                    l++;
+                } else {
+                    minHeight = height[r];
+                    r--;
+                }
+                max = Math.max(max, minHeight * r - l + 1);
+            }
+            return max;
+        }
+
         /**
          * 33. 搜索旋转排序数组
+         * 
+         * todo 没法一次过
          */
         public int search(int[] nums, int target) {
-            // todo
-            return 0;
+            if (nums == null || nums.length == 0)
+                return -1;
+            if (nums.length == 1)
+                return nums[0] == target ? 0 : -1;
+            int l = 0, r = nums.length - 1;
+            while (l <= r) {
+                int mid = (l + r) >> 1;
+                if (nums[mid] == target)
+                    return mid;
+                if (nums[l] <= nums[mid]) {
+                    if (nums[l] <= target && target < nums[mid]) {
+                        r = mid - 1;
+                    } else {
+                        l = mid + 1;
+                    }
+                } else {
+                    if (nums[mid] < target && target <= nums[r]) {
+                        l = mid + 1;
+                    } else {
+                        r = mid - 1;
+                    }
+                }
+            }
+            return -1;
+        }
+
+        /**
+         * 386. 字典序排数
+         * todo
+         */
+        public List<Integer> lexicalOrder(int n) {
+            return null;
+        }
+
+        /**
+         * 34. 在排序数组中查找元素的第一个和最后一个位置
+         * todo 不会做
+         */
+        public int[] searchRange(int[] nums, int target) {
+            int[] res = { -1, -1 };
+            if (nums == null || nums.length == 0)
+                return res;
+            int l = 0, r = nums.length - 1;
+            while (l <= r) {
+                int mid = (l + r) >> 1;
+                if (nums[mid] < target) {
+                    l = mid + 1;
+                } else {
+                    r = mid - 1;
+                }
+            }
+            int resL = l;
+            l = 0;
+            r = nums.length - 1;
+            while (l <= r) {
+                int mid = (l + r) >> 1;
+                if (nums[mid] <= target) {
+                    l = mid + 1;
+                } else {
+                    r = mid - 1;
+                }
+            }
+            int resR = r;
+            if (resL >= 0 && resL < nums.length && resR >= 0 && resR < nums.length && nums[resL] == target
+                    && nums[resR] == target) {
+                res[0] = resL;
+                res[1] = resR;
+            }
+            return res;
+        }
+
+        /**
+         * 35. 搜索插入位置
+         */
+        public int searchInsert(int[] nums, int target) {
+            if (nums == null || nums.length == 0)
+                return -1;
+            int l = 0, r = nums.length - 1;
+            while (l <= r) {
+                int mid = (l + r) >> 1;
+                if (nums[mid] == target)
+                    return mid;
+                if (nums[mid] < target) {
+                    l = mid + 1;
+                } else {
+                    r = mid - 1;
+                }
+            }
+            return l;
+        }
+
+        /**
+         * 36. 有效的数独
+         * 
+         * todo 可以复习一遍，一次过，厉害了我
+         */
+        public boolean isValidSudoku(char[][] board) {
+            if (board == null || board.length != 9 || board[0].length != 9)
+                return false;
+            int[] rows = new int[9];
+            int[] cols = new int[9];
+            int[] blocks = new int[9];
+            for (int i = 0; i < board.length; i++) {
+                for (int j = 0; j < board[0].length; j++) {
+                    if (board[i][j] >= '1' && board[i][j] <= '9') {
+                        int row = rows[i];
+                        int col = cols[j];
+                        int block = blocks[i / 3 * 3 + j / 3];
+                        int num = board[i][j] - '1';
+                        if ((row & (1 << num)) != 0)
+                            return false;
+                        if ((col & (1 << num)) != 0)
+                            return false;
+                        if ((block & (1 << num)) != 0)
+                            return false;
+                        rows[i] = rows[i] | (1 << num);
+                        cols[j] = cols[j] | (1 << num);
+                        blocks[i / 3 * 3 + j / 3] = block | (1 << num);
+                    } else if (board[i][j] == '.') {
+                        continue;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /**
+         * 37. 解数独
+         * 
+         * todo 需要多练
+         */
+        public void solveSudoku(char[][] board) {
+            if (board == null || board.length != 9 || board[0].length != 9)
+                return;
+            int[] rows = new int[9];
+            int[] cols = new int[9];
+            int[][] blocks = new int[3][3];
+            List<int[]> toFills = new ArrayList<>();
+            // mask
+            for (int i = 0; i < board.length; i++) {
+                for (int j = 0; j < board[0].length; j++) {
+                    if (board[i][j] >= '1' && board[i][j] <= '9') { // 这里大小
+                        mark(rows, cols, blocks, i, j, board[i][j] - '1');
+                    }
+                }
+            }
+            // fill which can caculate
+            while (true) { // 使用循环遍历到没有修改为止
+                boolean modified = false;
+                for (int i = 0; i < board.length; i++) {
+                    for (int j = 0; j < board[0].length; j++) {
+                        if (board[i][j] == '.') {
+                            int mask = ~((rows[i] | cols[j] | blocks[i / 3][j / 3]) & 0x1FF); // blocks这里之前忘了加'/3'了
+                            if ((mask & (mask - 1)) == 0) {
+                                board[i][j] = (char) ('1' + Integer.bitCount(mask - 1));
+                                modified = true;
+                            }
+                        }
+                    }
+                }
+                if (!modified) {
+                    break;
+                }
+            }
+            for (int i = 0; i < board.length; i++) {
+                for (int j = 0; j < board[0].length; j++) {
+                    if (board[i][j] == '.') {
+                        toFills.add(new int[] { i, j });
+                    }
+                }
+            }
+            dfs(board, rows, cols, blocks, toFills, 0);
+        }
+
+        private boolean dfs(char[][] board, int[] rows, int[] cols, int[][] blocks, List<int[]> toFills, int pos) {
+            if (pos == toFills.size()) {
+                return true;
+            }
+            int i = toFills.get(pos)[0], j = toFills.get(pos)[1];
+            for (int k = 0; k < 9; k++) {
+                if ((rows[i] & (1 << k)) == 0 && (cols[j] & (1 << k)) == 0 && (blocks[i / 3][j / 3] & (1 << k)) == 0) {
+                    board[i][j] = (char) ('1' + k);
+                    mark(rows, cols, blocks, i, j, k);
+                    if (dfs(board, rows, cols, blocks, toFills, pos + 1)) {
+                        return true;
+                    }
+                    board[i][j] = '.';
+                    mark(rows, cols, blocks, i, j, k);
+                }
+            }
+            return false;
+        }
+
+        private void mark(int[] rows, int[] cols, int[][] blocks, int i, int j, int num) {
+            rows[i] = rows[i] ^ (1 << num); // 这里用异或，方便还原
+            cols[j] = cols[j] ^ (1 << num);
+            blocks[i / 3][j / 3] = blocks[i / 3][j / 3] ^ (1 << num);
+        }
+
+        /**
+         * 38. 外观数列
+         * 
+         * todo 原算法效率不是最高的
+         */
+        public String countAndSay(int n) {
+            if (n < 1) return "";
+            if (n == 1) return "1";
+            String res = "1";
+            for (int i = 2; i <= n; i++) {
+                StringBuilder stringBuilder = new StringBuilder();
+                char pre = res.charAt(0);
+                int count = 1;
+                for (int j = 1; j < res.length(); j++) {
+                    char c = res.charAt(j);
+                    if (c == pre) {
+                        count++;
+                    } else {
+                        stringBuilder.append(count).append(pre);
+                        pre = c;
+                        count = 1;
+                    }
+                }
+                stringBuilder.append(count).append(pre);
+                res = stringBuilder.toString();
+            }
+            return res;
         }
     }
 }
