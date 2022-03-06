@@ -91,6 +91,13 @@ public class utils {
         System.out.print(log);
     }
 
+    public static void assumeTure(boolean adjudgement) {
+        if (!adjudgement) {
+            throw new IllegalArgumentException("The result error.");
+        }
+        System.out.println("adjudgement true.");
+    }
+
     public static void swap(int[] array, int i, int j) {
         int tmp = array[i];
         array[i] = array[j];
